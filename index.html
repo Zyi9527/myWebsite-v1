@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视觉设计师 - 个人作品集</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/three@0.150.0/build/three.min.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.150.0/build/three.module.js",
+            "ogl": "https://cdn.jsdelivr.net/npm/ogl@1.0.0/src/index.js"
+        }
+    }
+    </script>
+</head>
+<body>
+
+<!-- 加载页面 -->
+<div id="echoLoader"></div>
+<div id="particlesContainer"></div>
+
+<header class="header" id="header">
+  <div class="pill-nav-container">
+    <a href="#home" class="pill-logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4"/>
+      </svg>
+    </a>
+    <ul class="pill-list" role="menubar">
+      <li role="none"><a href="#home" class="pill is-active">首页</a></li>
+      <li role="none"><a href="#about" class="pill">经历</a></li>
+      <li role="none"><a href="#contact" class="pill">联系</a></li>
+    </ul>
+  </div>
+</header>
+
+<div id="mainContent">
+  <section id="home" class="hero-scroll">
+    <div class="annotation-rect-bg-wrapper">
+      <div class="annotation-rect-bg">
+        <span class="marker"></span><span class="marker"></span><span class="marker"></span><span class="marker"></span>
+        <span class="marker"></span><span class="marker"></span><span class="marker"></span><span class="marker"></span>
+      </div>
+    </div>
+    <canvas id="heroCanvas"></canvas>
+    <div class="hero-inner">
+      <div class="hero-title-left"><h1 id="pressureTitle" class="pressure-title">PORTFOLIO</h1></div>
+      <div class="hero-annotations">
+        <div class="vertical-line"></div>
+        <div class="annotation-text graphic">Graphic Design</div>
+        <div class="annotation-text design3d">3D Design</div>
+        <div class="annotation-text motion">Motion Design</div>
+        <div class="annotation-text photo">Photography</div>
+      </div>
+      <a href="#contact" class="hero-cta-right">Contact me</a>
+    </div>
+  </section>
+
+  <section id="gallery" class="gallery-section">
+    <div class="gallery-wrapper">
+<nav class="line-sidebar line-sidebar--markers line-sidebar--scale-tick" id="lineSidebar">
+  <ul class="line-sidebar__list">
+    <li class="line-sidebar__item" data-category="3D-design">
+      <span class="line-sidebar__marker" aria-hidden="true"></span>
+      <span class="line-sidebar__label">
+        <span class="line-sidebar__index">01</span>
+        <span class="line-sidebar__text">3D Design</span>
+      </span>
+    </li>
+    <li class="line-sidebar__item" data-category="Graphic-design">
+      <span class="line-sidebar__marker" aria-hidden="true"></span>
+      <span class="line-sidebar__label">
+        <span class="line-sidebar__index">02</span>
+        <span class="line-sidebar__text">Graphic Design</span>
+      </span>
+    </li>
+    <li class="line-sidebar__item" data-category="KV-design">
+      <span class="line-sidebar__marker" aria-hidden="true"></span>
+      <span class="line-sidebar__label">
+        <span class="line-sidebar__index">03</span>
+        <span class="line-sidebar__text">KV Design</span>
+      </span>
+    </li>
+    <li class="line-sidebar__item" data-category="VM-design">
+      <span class="line-sidebar__marker" aria-hidden="true"></span>
+      <span class="line-sidebar__label">
+        <span class="line-sidebar__index">04</span>
+        <span class="line-sidebar__text">VM Design</span>
+      </span>
+    </li>
+    <li class="line-sidebar__item" data-category="Motion-design">
+      <span class="line-sidebar__marker" aria-hidden="true"></span>
+      <span class="line-sidebar__label">
+        <span class="line-sidebar__index">05</span>
+        <span class="line-sidebar__text">Motion Design</span>
+      </span>
+    </li>
+  </ul>
+</nav>
+      <div id="circularGalleryContainer" class="circular-gallery-container"></div>
+    </div>
+  </section>
+
+ <div id="imageModal">
+  <img id="modalImage" src="" alt="全屏预览">
+  <video id="modalVideo" controls autoplay playsinline></video>
+</div>
+</div>
+
+<div class="fullscreen-overlay" id="fullscreen-about">
+  <div class="about-image-page">
+    <img src="images/about-page1.jpg" alt="经历" class="about-page-img">
+  </div>
+</div>
+<div class="fullscreen-overlay" id="fullscreen-contact">
+  <div class="about-image-page">
+    <img src="images/about-page2.jpg" alt="联系" class="about-page-img">
+  </div>
+</div>
+  </section>
+</div>
+
+<script type="module">
+    import { createParticles } from './js/particles.js';
+    const container = document.getElementById('particlesContainer');
+    if (container) {
+        createParticles(container, {
+            particleCount: 2000, particleSpread: 20, speed: 0.1,
+            particleColors: ['#ffffff', '#cccccc', '#999999'],
+            moveParticlesOnHover: true, particleHoverFactor: 1,
+            alphaParticles: false, particleBaseSize: 150, sizeRandomness: 1.5,
+            cameraDistance: 15, disableRotation: false, pixelRatio: 2
+        });
+    }
+</script>
+<script src="js/script.js"></script>
+</body>
+</html>
