@@ -46,49 +46,58 @@ function initScrollLoader() {
 
 function hideLoader() {
   const loader = document.getElementById('echoLoader');
-  if (!loader || loader.classList.contains('hidden')) return;
-
-  loader.classList.add('hidden');
   const main = document.getElementById('mainContent');
+  if (loader) loader.classList.add('hidden');
   if (main) {
     main.style.display = 'block';
-    window.dispatchEvent(new Event('resize')); // 触发重绘
+    window.dispatchEvent(new Event('resize'));
+    initPopInOnScroll();   // 改成滚动可见后再弹出
+  }
+}
 
-    const animElements = document.querySelectorAll(
-      '.pill, .annotation-text, .line-sidebar__item, .hero-cta-right, .section-title, .about-desc, .stat-item, .contact-title, .contact-email, .social-link'
-    );
-    animElements.forEach((el, i) => {
-      el.style.animationDelay = (i * 0.12) + 's';
+// ==================== 滚动到可视区域再弹出 ====================
+function initPopInOnScroll() {
+  const animElements = document.querySelectorAll(
+    '.pill, .annotation-text, .line-sidebar__item, .hero-cta-right, .section-title, .about-desc, .stat-item, .contact-title, .contact-email, .social-link'
+  );
+
+  // ✅ 先给所有元素设置延迟（与之前版本一致）
+  animElements.forEach((el, i) => {
+    el.style.animationDelay = (i * 0.12) + 's';
+    el.classList.add('pre-anim');   // 初始隐藏，避免闪烁
+  });
+
+  if (!('IntersectionObserver' in window)) {
+    // 不支持时直接弹出
+    animElements.forEach(el => {
+      el.classList.remove('pre-anim');
       el.classList.add('pop-in');
     });
+    return;
   }
+
+  const observer = new IntersectionObserver((entries, obs) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        // ✅ 先添加动画类，再移除隐藏类，避免闪烁
+        entry.target.classList.add('pop-in');
+        entry.target.classList.remove('pre-anim');
+        obs.unobserve(entry.target);
+      }
+    });
+  }, {
+    threshold: [0, 0.15],
+    rootMargin: '0px 0px -10% 0px'
+  });
+
+  animElements.forEach(el => observer.observe(el));
 }
 
 initScrollLoader();
 
 // ==================== 导航栏滚动 ====================
 const header = document.getElementById('header');
-if (header) {
-    window.addEventListener('scroll', () => {
-        header.classList.toggle('scrolled', window.scrollY > 50);
-    });
-}
-
-// ==================== 首页响应式缩放 (核心修复) ====================
-// 针对高分屏（如 Apple 笔记本）自动缩放 Hero 区域，保证与设计稿 (3840px) 一致
-function resizeHero() {
-  const designWidth = 3840;                        // 设计稿宽度基准
-  const heroInner = document.querySelector('.hero-inner');
-  if (!heroInner) return;
-
-  const scale = Math.min(window.innerWidth / designWidth, 1.5); // 防止放大超过 1.5 倍
-  heroInner.style.transform = `translate(-50%, -50%) scale(${scale})`;
-}
-
-// 监听初次加载、窗口变化和尺寸改变后重新计算位置
-window.addEventListener('resize', resizeHero);
-window.addEventListener('load', resizeHero);
-resizeHero();
+if (header) window.addEventListener('scroll', () => header.classList.toggle('scrolled', window.scrollY > 50));
 
 // ==================== 覆盖层切换 ====================
 function showOverlay(pageId) {
@@ -127,22 +136,39 @@ window.addEventListener('load', () => {
   if (hash !== 'home') setTimeout(() => showOverlay(hash), 600);
 });
 
-// ==================== 序列帧动画 ====================
-const FRAME_COUNT = 120; const FRAME_PATH = 'images/frames_optimized/frame_'; const FRAME_EXT = '.webp';
-const canvas = document.getElementById('heroCanvas'); const ctx = canvas ? canvas.getContext('2d') : null;
-const frames = []; let loadedCount = 0; let lastDrawnFrame = -1; let needsRedraw = true;
+// ==================== 序列帧 ====================
+const FRAME_COUNT = 120;
+const FRAME_PATH = 'images/frames_optimized/frame_';
+const FRAME_EXT = '.webp';
+const canvas = document.getElementById('heroCanvas');
+const ctx = canvas ? canvas.getContext('2d') : null;
+const frames = [];
+let loadedCount = 0;
+let lastDrawnFrame = -1;
+let needsRedraw = true;
+
 for (let i = 0; i < FRAME_COUNT; i++) {
   const img = new Image();
   img.onload = () => {
     loadedCount++;
-    if (loadedCount === 1 && canvas) { updateCanvasSize(); drawCurrentFrame(); }
+    if (loadedCount === 1 && canvas) {
+      updateCanvasSize();
+      drawCurrentFrame();
+    }
   };
   img.onerror = () => console.error('❌ 第 ' + i + ' 帧加载失败');
   img.src = FRAME_PATH + String(i).padStart(3, '0') + FRAME_EXT;
   frames.push(img);
 }
-function getScrollProgress() { return Math.max(0, Math.min(1, window.scrollY / (window.innerHeight * 1.5))); }
-function getCurrentFrameIndex() { return Math.min(Math.floor(getScrollProgress() * FRAME_COUNT), FRAME_COUNT - 1); }
+
+function getScrollProgress() {
+  return Math.max(0, Math.min(1, window.scrollY / (window.innerHeight * 1.5)));
+}
+
+function getCurrentFrameIndex() {
+  return Math.min(Math.floor(getScrollProgress() * FRAME_COUNT), FRAME_COUNT - 1);
+}
+
 function updateCanvasSize() {
   if (!canvas) return;
   const rect = canvas.getBoundingClientRect();
@@ -151,6 +177,7 @@ function updateCanvasSize() {
   canvas.height = rect.height * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
+
 function drawFrame(idx) {
   if (!ctx || !frames[idx]) return;
   const rect = canvas.getBoundingClientRect();
@@ -159,10 +186,20 @@ function drawFrame(idx) {
   const imgRatio = img.width / img.height;
   const canvasRatio = rect.width / rect.height;
   let dw, dh, dx, dy;
-  if (imgRatio > canvasRatio) { dw = rect.width; dh = dw / imgRatio; dx = 0; dy = (rect.height - dh) / 2; }
-  else { dh = rect.height; dw = dh * imgRatio; dx = (rect.width - dw) / 2; dy = 0; }
+  if (imgRatio > canvasRatio) {
+    dw = rect.width;
+    dh = dw / imgRatio;
+    dx = 0;
+    dy = (rect.height - dh) / 2;
+  } else {
+    dh = rect.height;
+    dw = dh * imgRatio;
+    dx = (rect.width - dw) / 2;
+    dy = 0;
+  }
   ctx.drawImage(img, dx, dy, dw, dh);
 }
+
 function drawCurrentFrame() {
   const idx = getCurrentFrameIndex();
   if (idx !== lastDrawnFrame || needsRedraw) {
@@ -171,41 +208,108 @@ function drawCurrentFrame() {
     needsRedraw = false;
   }
 }
-function renderLoop() { drawCurrentFrame(); requestAnimationFrame(renderLoop); }
-if (loadedCount > 0 && canvas) { updateCanvasSize(); renderLoop(); }
-else { const intv = setInterval(() => { if (loadedCount > 0 && canvas) { clearInterval(intv); updateCanvasSize(); renderLoop(); } }, 100); }
-let scrollRafId = null; window.addEventListener('scroll', () => { if (scrollRafId) return; scrollRafId = requestAnimationFrame(() => { lastDrawnFrame = -1; scrollRafId = null; }); });
-window.addEventListener('resize', () => { if (canvas) { updateCanvasSize(); needsRedraw = true; } });
 
-// ==================== 渐显动画 ====================
-const revealEls = document.querySelectorAll('.section-title, .about-grid, .stat-item');
-if (revealEls.length) {
-  const obs = new IntersectionObserver(entries => { entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }); }, { threshold: 0.15 });
-  revealEls.forEach(el => { el.classList.add('reveal'); obs.observe(el); });
+function renderLoop() {
+  drawCurrentFrame();
+  requestAnimationFrame(renderLoop);
 }
 
-// ==================== 文字压力效果 ====================
+if (loadedCount > 0 && canvas) {
+  updateCanvasSize();
+  renderLoop();
+} else {
+  const intv = setInterval(() => {
+    if (loadedCount > 0 && canvas) {
+      clearInterval(intv);
+      updateCanvasSize();
+      renderLoop();
+    }
+  }, 100);
+}
+
+let scrollRafId = null;
+window.addEventListener('scroll', () => {
+  if (scrollRafId) return;
+  scrollRafId = requestAnimationFrame(() => {
+    lastDrawnFrame = -1;
+    scrollRafId = null;
+  });
+});
+
+window.addEventListener('resize', () => {
+  if (canvas) {
+    updateCanvasSize();
+    needsRedraw = true;
+  }
+});
+
+// ==================== 渐显 ====================
+const revealEls = document.querySelectorAll('.section-title, .about-grid, .stat-item');
+if (revealEls.length) {
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) e.target.classList.add('visible');
+    });
+  }, { threshold: 0.15 });
+  revealEls.forEach(el => {
+    el.classList.add('reveal');
+    obs.observe(el);
+  });
+}
+
+// ==================== 文字压力 ====================
 (function() {
   function init() {
-    const title = document.getElementById('pressureTitle'); if (!title) return;
-    const txt = title.textContent.trim(); title.innerHTML = ''; const spans = [];
-    for (let c of txt) { const span = document.createElement('span'); span.textContent = c; span.style.display = 'inline-block'; title.appendChild(span); spans.push(span); }
-    let mouse = { x: 0, y: 0 }, cursor = { x: 0, y: 0 }; const cont = title.parentElement;
-    if (cont) { const r = cont.getBoundingClientRect(); mouse.x = r.left + r.width / 2; mouse.y = r.top + r.height / 2; cursor.x = mouse.x; cursor.y = mouse.y; }
-    window.addEventListener('mousemove', e => { cursor.x = e.clientX; cursor.y = e.clientY; });
+    const title = document.getElementById('pressureTitle');
+    if (!title) return;
+    const txt = title.textContent.trim();
+    title.innerHTML = '';
+    const spans = [];
+    for (let c of txt) {
+      const span = document.createElement('span');
+      span.textContent = c;
+      span.style.display = 'inline-block';
+      title.appendChild(span);
+      spans.push(span);
+    }
+    let mouse = { x: 0, y: 0 }, cursor = { x: 0, y: 0 };
+    const cont = title.parentElement;
+    if (cont) {
+      const r = cont.getBoundingClientRect();
+      mouse.x = r.left + r.width / 2;
+      mouse.y = r.top + r.height / 2;
+      cursor.x = mouse.x;
+      cursor.y = mouse.y;
+    }
+    window.addEventListener('mousemove', e => {
+      cursor.x = e.clientX;
+      cursor.y = e.clientY;
+    });
     const dist = (a,b) => Math.sqrt((b.x-a.x)**2+(b.y-a.y)**2);
     const getA = (d, max, min, maxV) => Math.max(min, maxV - Math.abs((maxV*d)/max) + min);
     function anim() {
-      mouse.x += (cursor.x - mouse.x) / 15; mouse.y += (cursor.y - mouse.y) / 15; const r = title.getBoundingClientRect(); const maxD = r.width / 2;
-      spans.forEach(s => { const rs = s.getBoundingClientRect(); const ctr = { x: rs.x + rs.width/2, y: rs.y + rs.height/2 }; const d = dist(mouse, ctr);
-        const wght = Math.floor(getA(d, maxD, 150, 900)); const wdth = Math.floor(getA(d, maxD, 50, 200)); const slnt = getA(d, maxD, 0, 10).toFixed(2);
-        s.style.fontVariationSettings = `'wght' ${wght}, 'wdth' ${wdth}, 'slnt' ${slnt}`; }); requestAnimationFrame(anim); }
+      mouse.x += (cursor.x - mouse.x) / 15;
+      mouse.y += (cursor.y - mouse.y) / 15;
+      const r = title.getBoundingClientRect();
+      const maxD = r.width / 2;
+      spans.forEach(s => {
+        const rs = s.getBoundingClientRect();
+        const ctr = { x: rs.x + rs.width/2, y: rs.y + rs.height/2 };
+        const d = dist(mouse, ctr);
+        const wght = Math.floor(getA(d, maxD, 150, 900));
+        const wdth = Math.floor(getA(d, maxD, 50, 200));
+        const slnt = getA(d, maxD, 0, 10).toFixed(2);
+        s.style.fontVariationSettings = `'wght' ${wght}, 'wdth' ${wdth}, 'slnt' ${slnt}`;
+      });
+      requestAnimationFrame(anim);
+    }
     anim();
   }
-  if (document.readyState === 'complete') init(); else window.addEventListener('load', init);
+  if (document.readyState === 'complete') init();
+  else window.addEventListener('load', init);
 })();
 
-// ==================== 全屏图片滚轮拦截 (修复版) ====================
+// ==================== 全屏图片滚轮拦截 ====================
 (function() {
   const imageModal = document.getElementById('imageModal');
   if (!imageModal) return;
@@ -222,7 +326,6 @@ if (revealEls.length) {
   const FULL_PATH = 'images/gallery-fullscreen';
   const VIDEO_PATH = 'images/gallery-videos';
 
-  // 每个分类的图片数量（视频分类也对应相同的缩略图数量，但视频文件放 gallery-videos）
   const IMAGE_COUNTS = {
     '3D-design': 4,
     'Graphic-design': 8,
@@ -234,7 +337,7 @@ if (revealEls.length) {
   const container = document.getElementById('circularGalleryContainer');
   if (!container) return;
   let galleryApp = null, loadedThis = 0, expecting = 0, timeout = null;
-  let currentCategory = '3D-design';   // 当前显示的分类
+  let currentCategory = '3D-design';
 
   function buildImageData(categoryKey) {
     const cnt = IMAGE_COUNTS[categoryKey] || 6;
@@ -266,7 +369,7 @@ if (revealEls.length) {
 
   async function initGallery(key) {
     loadedThis = 0;
-    currentCategory = key;   // ★ 保存当前分类
+    currentCategory = key;
     const data = buildImageData(key);
     expecting = data.length;
 
@@ -288,14 +391,16 @@ if (revealEls.length) {
   const CATEGORY_ORDER = ['3D-design', 'Graphic-design', 'KV-design', 'VM-design', 'Motion-design'];
   initGallery(CATEGORY_ORDER[0]);
 
-  // ==================== 点击放大（图片 / 视频） ====================
+  // ==================== 点击放大 ====================
   const galleryEl = container;
   const modal = document.getElementById('imageModal');
   const modalImg = document.getElementById('modalImage');
   const modalVideo = document.getElementById('modalVideo');
   let mDown = null;
 
-  galleryEl.addEventListener('mousedown', e => { mDown = { x: e.clientX, y: e.clientY }; });
+  galleryEl.addEventListener('mousedown', e => {
+    mDown = { x: e.clientX, y: e.clientY };
+  });
 
   galleryEl.addEventListener('click', e => {
     if (mDown && (Math.abs(e.clientX - mDown.x) > 5 || Math.abs(e.clientY - mDown.y) > 5)) {
@@ -310,25 +415,18 @@ if (revealEls.length) {
     const idx = window.__galleryApp.getItemIndexAtScreenX(x);
     if (idx < 0 || !window.__galleryImageData[idx]) return;
 
-    // 关闭前先清除视频状态
     if (modalVideo) {
       modalVideo.pause();
       modalVideo.removeAttribute('src');
     }
 
     if (currentCategory === 'Motion-design') {
-      // 播放视频
       const videoSrc = `${VIDEO_PATH}/Motion-design/${String(idx + 1).padStart(2, '0')}.mp4`;
       modalImg.style.display = 'none';
       modalVideo.style.display = 'block';
       modalVideo.src = videoSrc;
-      modalVideo.play().catch(err => {
-        console.warn("Autoplay blocked:", err);
-        modalVideo.muted = true; // 静音重试以绕过自动播放限制
-        modalVideo.play();
-      });
+      modalVideo.play();
     } else {
-      // 显示图片
       modalImg.style.display = 'block';
       modalVideo.style.display = 'none';
       modalImg.src = window.__galleryImageData[idx].full;
@@ -338,7 +436,6 @@ if (revealEls.length) {
     modal.style.display = 'block';
   });
 
-  // ==================== 关闭全屏（图片 / 视频） ====================
   function closeModal() {
     modal.style.display = 'none';
     modalImg.src = '';
@@ -349,7 +446,6 @@ if (revealEls.length) {
   }
 
   modal.addEventListener('click', closeModal);
-
   modalImg.addEventListener('click', (e) => {
     e.stopPropagation();
     closeModal();
@@ -358,27 +454,30 @@ if (revealEls.length) {
   if (modalVideo) {
     modalVideo.addEventListener('click', (e) => {
       e.stopPropagation();
-      // 点击视频本身不关闭，让用户可以使用原生进度条等，但点击视频外部背景会关闭
     });
   }
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      closeModal();
-    }
+    if (e.key === 'Escape') closeModal();
   });
 
   // ==================== LineSidebar 交互 ====================
   const list = document.querySelector('#lineSidebar .line-sidebar__list');
   const items = document.querySelectorAll('.line-sidebar__item');
-  const targets = new Array(items.length).fill(0), currents = new Array(items.length).fill(0);
+  const targets = new Array(items.length).fill(0);
+  const currents = new Array(items.length).fill(0);
   let rafId = null, lastTime = 0;
   const ease = t => t * t * (3 - 2 * t);
 
   function updateEffects() {
-    const now = performance.now(); const dt = Math.min((now - lastTime) / 1000, 0.05); lastTime = now;
-    const smoothing = 100; const tau = smoothing / 1000; const k = 1 - Math.exp(-dt / tau);
+    const now = performance.now();
+    const dt = Math.min((now - lastTime) / 1000, 0.05);
+    lastTime = now;
+    const smoothing = 100;
+    const tau = smoothing / 1000;
+    const k = 1 - Math.exp(-dt / tau);
     let moving = false;
+
     items.forEach((item, i) => {
       const target = targets[i] || (item.classList.contains('active') ? 1 : 0);
       const next = currents[i] + (target - currents[i]) * k;
@@ -387,37 +486,64 @@ if (revealEls.length) {
       item.style.setProperty('--effect', currents[i].toFixed(4));
       if (!settled) moving = true;
     });
-    if (moving) rafId = requestAnimationFrame(updateEffects); else rafId = null;
+
+    if (moving) rafId = requestAnimationFrame(updateEffects);
+    else rafId = null;
   }
 
-  function startLoop() { if (rafId) cancelAnimationFrame(rafId); lastTime = performance.now(); rafId = requestAnimationFrame(updateEffects); }
+  function startLoop() {
+    if (rafId) cancelAnimationFrame(rafId);
+    lastTime = performance.now();
+    rafId = requestAnimationFrame(updateEffects);
+  }
 
   if (list) {
     list.addEventListener('pointermove', e => {
-      const rect = list.getBoundingClientRect(), y = e.clientY - rect.top;
+      const rect = list.getBoundingClientRect();
+      const y = e.clientY - rect.top;
       items.forEach((item, i) => {
         const center = item.offsetTop + item.offsetHeight / 2;
         targets[i] = ease(Math.max(0, 1 - Math.abs(y - center) / 100));
       });
       startLoop();
     });
+
     list.addEventListener('pointerleave', () => {
       targets.fill(0);
       const activeIdx = [...items].findIndex(el => el.classList.contains('active'));
       if (activeIdx >= 0) targets[activeIdx] = 1;
       startLoop();
     });
+
     items.forEach((item) => {
       item.addEventListener('click', function() {
-        items.forEach((it, i) => { it.classList.remove('active'); targets[i] = 0; });
+        items.forEach((it, i) => {
+          it.classList.remove('active');
+          targets[i] = 0;
+        });
         this.classList.add('active');
-        const idx = [...items].indexOf(this); targets[idx] = 1;
+        const idx = [...items].indexOf(this);
+        targets[idx] = 1;
         const category = this.getAttribute('data-category');
         initGallery(category);
         startLoop();
       });
     });
-    items[0].classList.add('active'); targets[0] = 1;
+
+    items[0].classList.add('active');
+    targets[0] = 1;
     startLoop();
   }
 })();
+
+// ==================== 全局等比缩放 ====================
+const BASE_VIEWPORT_WIDTH = 2560; // 4K + 150% 系统缩放后的实际 CSS 宽度
+
+function applyGlobalScale() {
+  const scale = Math.min(1, window.innerWidth / BASE_VIEWPORT_WIDTH);
+  document.documentElement.style.zoom = scale;
+}
+
+window.addEventListener('resize', applyGlobalScale);
+window.addEventListener('load', applyGlobalScale);
+applyGlobalScale();
