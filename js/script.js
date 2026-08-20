@@ -162,9 +162,9 @@ for (let i = 0; i < FRAME_COUNT; i++) {
 }
 
 function getScrollProgress() {
-  return Math.max(0, Math.min(1, window.scrollY / (window.innerHeight * 1.5)));
+  const range = window.innerHeight * 1.0; // 把 1.5 改成 1.0，触发范围变短
+  return Math.max(0, Math.min(1, window.scrollY / range));
 }
-
 function getCurrentFrameIndex() {
   return Math.min(Math.floor(getScrollProgress() * FRAME_COUNT), FRAME_COUNT - 1);
 }
@@ -409,8 +409,11 @@ if (revealEls.length) {
     }
     mDown = null;
 
-    const rect = galleryEl.getBoundingClientRect();
-    const x = e.clientX - rect.left;
+      const rect = galleryEl.getBoundingClientRect();
+    // 因为 #mainContent 被 transform: scale 缩放过，
+    // 要把屏幕坐标换算回画廊内部的原始坐标
+    const mainScale = Math.min(1, window.innerWidth / 2560);
+    const x = (e.clientX - rect.left) / mainScale;
     if (!window.__galleryApp) return;
     const idx = window.__galleryApp.getItemIndexAtScreenX(x);
     if (idx < 0 || !window.__galleryImageData[idx]) return;
