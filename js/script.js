@@ -162,9 +162,7 @@ for (let i = 0; i < FRAME_COUNT; i++) {
 }
 
 function getScrollProgress() {
-  const hero = document.querySelector('.hero-scroll');
-  const heroHeight = hero ? hero.offsetHeight : window.innerHeight * 1.5;
-  return Math.max(0, Math.min(1, window.scrollY / (heroHeight * 0.75)));
+  return Math.max(0, Math.min(1, window.scrollY / (window.innerHeight * 1.5)));
 }
 
 function getCurrentFrameIndex() {
