@@ -34,7 +34,7 @@ body { background-color:var(--bg-primary); color:var(--text-primary); font-famil
 @media (max-width:768px) { .pill-nav-container{ flex-direction:column; gap:8px; } .pill-list{ flex-wrap:wrap; justify-content:center; } }
 
 /* Hero */
-.hero-scroll { position:relative; height:150vh; min-height:1165px; width:100%; min-width:2200px; overflow:hidden; background:transparent; pointer-events:none; }
+.hero-scroll { position:relative; height:150vh; width:100%; overflow:hidden; background:transparent; pointer-events:none; }
 #particlesContainer { position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:0; pointer-events:auto; }
 .annotation-rect-bg-wrapper { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:2200px; height:1165px; z-index:1; pointer-events:none; }
 .annotation-rect-bg { position:absolute; top:606px; left:1210px; width:783px; height:455px; border:2px solid rgba(0,50,255,0.5); pointer-events:none; }
