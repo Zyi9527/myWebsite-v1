@@ -536,14 +536,28 @@ if (revealEls.length) {
   }
 })();
 
-// ==================== 全局等比缩放 ====================
+// ==================== 主内容等比缩放（不影响全屏浮层） ====================
 const BASE_VIEWPORT_WIDTH = 2560; // 4K + 150% 系统缩放后的实际 CSS 宽度
 
-function applyGlobalScale() {
+function applyMainScale() {
+  const main = document.getElementById('mainContent');
+  if (!main) return;
+
   const scale = Math.min(1, window.innerWidth / BASE_VIEWPORT_WIDTH);
-  document.documentElement.style.zoom = scale;
+
+  // 固定主内容宽度为基准宽度
+  main.style.width = BASE_VIEWPORT_WIDTH + 'px';
+  main.style.transform = 'scale(' + scale + ')';
+  main.style.transformOrigin = 'top left';
+
+  // 水平居中
+  main.style.marginLeft = ((window.innerWidth - BASE_VIEWPORT_WIDTH * scale) / 2) + 'px';
+
+  // 让页面滚动高度与缩放后的内容高度一致
+  document.body.style.height = (main.scrollHeight * scale) + 'px';
+  document.body.style.overflowX = 'hidden';
 }
 
-window.addEventListener('resize', applyGlobalScale);
-window.addEventListener('load', applyGlobalScale);
-applyGlobalScale();
+window.addEventListener('resize', applyMainScale);
+window.addEventListener('load', applyMainScale);
+applyMainScale();
