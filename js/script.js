@@ -46,11 +46,14 @@ function initScrollLoader() {
 
 function hideLoader() {
   const loader = document.getElementById('echoLoader');
+  if (!loader || loader.classList.contains('hidden')) return;
+
+  loader.classList.add('hidden');
   const main = document.getElementById('mainContent');
-  if (loader) loader.classList.add('hidden');
   if (main) {
     main.style.display = 'block';
-    window.dispatchEvent(new Event('resize'));
+    window.dispatchEvent(new Event('resize')); // 触发重绘
+
     const animElements = document.querySelectorAll(
       '.pill, .annotation-text, .line-sidebar__item, .hero-cta-right, .section-title, .about-desc, .stat-item, .contact-title, .contact-email, .social-link'
     );
@@ -65,7 +68,27 @@ initScrollLoader();
 
 // ==================== 导航栏滚动 ====================
 const header = document.getElementById('header');
-if (header) window.addEventListener('scroll', () => header.classList.toggle('scrolled', window.scrollY > 50));
+if (header) {
+    window.addEventListener('scroll', () => {
+        header.classList.toggle('scrolled', window.scrollY > 50);
+    });
+}
+
+// ==================== 首页响应式缩放 (核心修复) ====================
+// 针对高分屏（如 Apple 笔记本）自动缩放 Hero 区域，保证与设计稿 (3840px) 一致
+function resizeHero() {
+  const designWidth = 3840;                        // 设计稿宽度基准
+  const heroInner = document.querySelector('.hero-inner');
+  if (!heroInner) return;
+
+  const scale = Math.min(window.innerWidth / designWidth, 1.5); // 防止放大超过 1.5 倍
+  heroInner.style.transform = `translate(-50%, -50%) scale(${scale})`;
+}
+
+// 监听初次加载、窗口变化和尺寸改变后重新计算位置
+window.addEventListener('resize', resizeHero);
+window.addEventListener('load', resizeHero);
+resizeHero();
 
 // ==================== 覆盖层切换 ====================
 function showOverlay(pageId) {
@@ -78,12 +101,23 @@ function showOverlay(pageId) {
   if (activePill) activePill.classList.add('is-active');
   if (pageId && pageId !== 'home') {
     const overlay = document.getElementById('fullscreen-' + pageId);
-    if (overlay) { overlay.classList.add('active'); document.body.classList.add('overlay-open');
-      if (head) { head.style.background = 'rgba(10,10,15,0.85)'; head.style.backdropFilter = 'blur(20px)'; head.style.webkitBackdropFilter = 'blur(20px)'; }
+    if (overlay) {
+      overlay.classList.add('active');
+      document.body.classList.add('overlay-open');
+      if (head) {
+        head.style.background = 'rgba(10,10,15,0.85)';
+        head.style.backdropFilter = 'blur(20px)';
+        head.style.webkitBackdropFilter = 'blur(20px)';
+      }
       history.pushState(null, '', '#' + pageId);
     }
-  } else { document.body.classList.remove('overlay-open');
-    if (head) { head.style.background = 'transparent'; head.style.backdropFilter = 'none'; head.style.webkitBackdropFilter = 'none'; }
+  } else {
+    document.body.classList.remove('overlay-open');
+    if (head) {
+      head.style.background = 'transparent';
+      head.style.backdropFilter = 'none';
+      head.style.webkitBackdropFilter = 'none';
+    }
     history.pushState(null, '', '#');
   }
 }
@@ -93,29 +127,64 @@ window.addEventListener('load', () => {
   if (hash !== 'home') setTimeout(() => showOverlay(hash), 600);
 });
 
-// ==================== 序列帧 ====================
+// ==================== 序列帧动画 ====================
 const FRAME_COUNT = 120; const FRAME_PATH = 'images/frames_optimized/frame_'; const FRAME_EXT = '.webp';
 const canvas = document.getElementById('heroCanvas'); const ctx = canvas ? canvas.getContext('2d') : null;
 const frames = []; let loadedCount = 0; let lastDrawnFrame = -1; let needsRedraw = true;
 for (let i = 0; i < FRAME_COUNT; i++) {
-  const img = new Image(); img.onload = () => { loadedCount++; if (loadedCount === 1 && canvas) { updateCanvasSize(); drawCurrentFrame(); } };
-  img.onerror = () => console.error('❌ 第 ' + i + ' 帧加载失败'); img.src = FRAME_PATH + String(i).padStart(3, '0') + FRAME_EXT; frames.push(img);
+  const img = new Image();
+  img.onload = () => {
+    loadedCount++;
+    if (loadedCount === 1 && canvas) { updateCanvasSize(); drawCurrentFrame(); }
+  };
+  img.onerror = () => console.error('❌ 第 ' + i + ' 帧加载失败');
+  img.src = FRAME_PATH + String(i).padStart(3, '0') + FRAME_EXT;
+  frames.push(img);
 }
 function getScrollProgress() { return Math.max(0, Math.min(1, window.scrollY / (window.innerHeight * 1.5))); }
 function getCurrentFrameIndex() { return Math.min(Math.floor(getScrollProgress() * FRAME_COUNT), FRAME_COUNT - 1); }
-function updateCanvasSize() { if (!canvas) return; const rect = canvas.getBoundingClientRect(); const dpr = Math.min(window.devicePixelRatio || 1, 1.5); canvas.width = rect.width * dpr; canvas.height = rect.height * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); }
-function drawFrame(idx) { if (!ctx || !frames[idx]) return; const rect = canvas.getBoundingClientRect(); ctx.clearRect(0, 0, rect.width, rect.height); const img = frames[idx]; const imgRatio = img.width / img.height; const canvasRatio = rect.width / rect.height; let dw, dh, dx, dy; if (imgRatio > canvasRatio) { dw = rect.width; dh = dw / imgRatio; dx = 0; dy = (rect.height - dh) / 2; } else { dh = rect.height; dw = dh * imgRatio; dx = (rect.width - dw) / 2; dy = 0; } ctx.drawImage(img, dx, dy, dw, dh); }
-function drawCurrentFrame() { const idx = getCurrentFrameIndex(); if (idx !== lastDrawnFrame || needsRedraw) { drawFrame(idx); lastDrawnFrame = idx; needsRedraw = false; } }
+function updateCanvasSize() {
+  if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+function drawFrame(idx) {
+  if (!ctx || !frames[idx]) return;
+  const rect = canvas.getBoundingClientRect();
+  ctx.clearRect(0, 0, rect.width, rect.height);
+  const img = frames[idx];
+  const imgRatio = img.width / img.height;
+  const canvasRatio = rect.width / rect.height;
+  let dw, dh, dx, dy;
+  if (imgRatio > canvasRatio) { dw = rect.width; dh = dw / imgRatio; dx = 0; dy = (rect.height - dh) / 2; }
+  else { dh = rect.height; dw = dh * imgRatio; dx = (rect.width - dw) / 2; dy = 0; }
+  ctx.drawImage(img, dx, dy, dw, dh);
+}
+function drawCurrentFrame() {
+  const idx = getCurrentFrameIndex();
+  if (idx !== lastDrawnFrame || needsRedraw) {
+    drawFrame(idx);
+    lastDrawnFrame = idx;
+    needsRedraw = false;
+  }
+}
 function renderLoop() { drawCurrentFrame(); requestAnimationFrame(renderLoop); }
-if (loadedCount > 0 && canvas) { updateCanvasSize(); renderLoop(); } else { const intv = setInterval(() => { if (loadedCount > 0 && canvas) { clearInterval(intv); updateCanvasSize(); renderLoop(); } }, 100); }
+if (loadedCount > 0 && canvas) { updateCanvasSize(); renderLoop(); }
+else { const intv = setInterval(() => { if (loadedCount > 0 && canvas) { clearInterval(intv); updateCanvasSize(); renderLoop(); } }, 100); }
 let scrollRafId = null; window.addEventListener('scroll', () => { if (scrollRafId) return; scrollRafId = requestAnimationFrame(() => { lastDrawnFrame = -1; scrollRafId = null; }); });
 window.addEventListener('resize', () => { if (canvas) { updateCanvasSize(); needsRedraw = true; } });
 
-// ==================== 渐显 ====================
+// ==================== 渐显动画 ====================
 const revealEls = document.querySelectorAll('.section-title, .about-grid, .stat-item');
-if (revealEls.length) { const obs = new IntersectionObserver(entries => { entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }); }, { threshold: 0.15 }); revealEls.forEach(el => { el.classList.add('reveal'); obs.observe(el); }); }
+if (revealEls.length) {
+  const obs = new IntersectionObserver(entries => { entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }); }, { threshold: 0.15 });
+  revealEls.forEach(el => { el.classList.add('reveal'); obs.observe(el); });
+}
 
-// ==================== 文字压力 ====================
+// ==================== 文字压力效果 ====================
 (function() {
   function init() {
     const title = document.getElementById('pressureTitle'); if (!title) return;
@@ -126,7 +195,8 @@ if (revealEls.length) { const obs = new IntersectionObserver(entries => { entrie
     window.addEventListener('mousemove', e => { cursor.x = e.clientX; cursor.y = e.clientY; });
     const dist = (a,b) => Math.sqrt((b.x-a.x)**2+(b.y-a.y)**2);
     const getA = (d, max, min, maxV) => Math.max(min, maxV - Math.abs((maxV*d)/max) + min);
-    function anim() { mouse.x += (cursor.x - mouse.x) / 15; mouse.y += (cursor.y - mouse.y) / 15; const r = title.getBoundingClientRect(); const maxD = r.width / 2;
+    function anim() {
+      mouse.x += (cursor.x - mouse.x) / 15; mouse.y += (cursor.y - mouse.y) / 15; const r = title.getBoundingClientRect(); const maxD = r.width / 2;
       spans.forEach(s => { const rs = s.getBoundingClientRect(); const ctr = { x: rs.x + rs.width/2, y: rs.y + rs.height/2 }; const d = dist(mouse, ctr);
         const wght = Math.floor(getA(d, maxD, 150, 900)); const wdth = Math.floor(getA(d, maxD, 50, 200)); const slnt = getA(d, maxD, 0, 10).toFixed(2);
         s.style.fontVariationSettings = `'wght' ${wght}, 'wdth' ${wdth}, 'slnt' ${slnt}`; }); requestAnimationFrame(anim); }
@@ -252,7 +322,11 @@ if (revealEls.length) { const obs = new IntersectionObserver(entries => { entrie
       modalImg.style.display = 'none';
       modalVideo.style.display = 'block';
       modalVideo.src = videoSrc;
-      modalVideo.play();
+      modalVideo.play().catch(err => {
+        console.warn("Autoplay blocked:", err);
+        modalVideo.muted = true; // 静音重试以绕过自动播放限制
+        modalVideo.play();
+      });
     } else {
       // 显示图片
       modalImg.style.display = 'block';
