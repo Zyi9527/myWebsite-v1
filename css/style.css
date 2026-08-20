@@ -15,7 +15,14 @@
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 html { scroll-behaviour:smooth; }
-body { background-color:var(--bg-primary); color:var(--text-primary); font-family:var(--font-main); line-height:1.6; overflow-x:hidden; }
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  line-height: 1.6;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
 .container { max-width:var(--container-max); margin:0 auto; padding:0 40px; }
 .section { padding:120px 0; position:relative; }
 .section-title { font-size:2.8rem; font-weight:700; margin-bottom:40px; letter-spacing:-0.5px; background:var(--gradient-accent); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
@@ -187,7 +194,13 @@ body { background-color:var(--bg-primary); color:var(--text-primary); font-famil
 @keyframes popIn { to { opacity: 1; transform: translateY(0); } }
 
 /* 主内容层级 */
-#mainContent { z-index:1; position:relative; pointer-events:none; }
+#mainContent {
+  z-index: 1;
+  position: relative;
+  pointer-events: none;
+  transform-origin: top left;
+  will-change: transform;
+}
 
 /* 覆盖层 */
 .fullscreen-overlay { position:fixed; top:0; left:0; width:100vw; height:100vh; background:var(--bg-primary); z-index:9998; display:none; overflow-y:auto; padding-top:80px; opacity:0; transform:translateY(20px); transition:opacity .4s ease,transform .4s ease; pointer-events:auto; }
