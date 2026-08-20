@@ -208,7 +208,7 @@ export class CircularGalleryApp {
     this.scroll.target = this.scrollPos + (this.start - x) * 0.05;
   }
   onTouchUp() { this.isDown = false; }
-  onWheel(e) { this.scroll.target += (e.deltaY > 0 ? 2 : -2) * 0.2; }
+  onWheel(e) { this.scroll.target += (e.deltaX > 0 ? 2 : -2) * 0.2; }
 
   addEventListeners() {
     this._onResize = () => this.onResize();
