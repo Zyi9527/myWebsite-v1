@@ -42,8 +42,7 @@ body {
 
 .hero-scroll {
   position: relative;
-  height: 150vh;
-  min-height: 1165px;
+  height: 2160px;          /* 固定为 4K 上 150vh 的实际高度 */
   width: 100%;
   min-width: 2200px;
   overflow: hidden;
@@ -87,13 +86,13 @@ body {
 
 /* 联系 */
 .contact {
-  height: 100vh;
+  height: 1440px;          /* 固定为 4K 上 100vh 的实际高度 */
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
-  background: #000000;        /* 纯黑色背景 */
+  background: #000000;
 }
 .contact::before { content:''; position:absolute; width:100%; height:100%; background:radial-gradient(circle at center,rgba(123,47,247,0.1) 0%,transparent 70%); }
 .contact-content { text-align:center; position:relative; z-index:1; }
@@ -115,7 +114,14 @@ body {
 .pressure-stroke span::after { content:attr(data-char); position:absolute; left:0; top:0; color:transparent; z-index:-1; -webkit-text-stroke-width:3px; -webkit-text-stroke-color:#00e5ff; }
 
 /* 画廊 */
-.gallery-section { width:100%; height:100vh; position:relative; background:transparent; overflow:visible; margin-top:-20vh; }
+.gallery-section {
+  width: 100%;
+  height: 1440px;          /* 固定为 4K 上 100vh 的实际高度 */
+  position: relative;
+  background: transparent;
+  overflow: visible;
+  margin-top: -288px;      /* 固定为 4K 上 20vh 的实际值 */
+}
 .gallery-wrapper { position:relative; width:100%; height:100%; }
 .circular-gallery-container { position:relative; width:100%; height:100%; cursor:grab; pointer-events:auto; z-index:1; }
 .circular-gallery-container:active { cursor:grabbing; }
