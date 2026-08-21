@@ -564,3 +564,39 @@ function applyMainScale() {
 window.addEventListener('resize', applyMainScale);
 window.addEventListener('load', applyMainScale);
 applyMainScale();
+// ==================== 背景音乐自动播放（点击触发） ====================
+(function() {
+  const bgm = document.getElementById('bgm');
+  if (!bgm) return;
+
+  let hasInteracted = false;
+
+  function tryPlay() {
+    bgm.play().then(() => {
+      console.log('🎵 背景音乐已播放');
+    }).catch(() => {
+      console.log('⏸️ 自动播放被阻止，等待用户点击后播放');
+    });
+  }
+
+  function onFirstClick() {
+    if (hasInteracted) return;
+    hasInteracted = true;
+    tryPlay();
+
+    // 触发一次后移除所有监听，避免重复播放
+    window.removeEventListener('pointerdown', onFirstClick);
+    window.removeEventListener('touchstart', onFirstClick);
+    window.removeEventListener('keydown', onFirstClick);
+    window.removeEventListener('click', onFirstClick);
+  }
+
+  // 页面加载后先尝试自动播放（少数浏览器会允许）
+  window.addEventListener('load', tryPlay);
+
+  // 如果被阻止，等用户点击 / 触摸 / 按键时播放
+  window.addEventListener('pointerdown', onFirstClick, { passive: true });
+  window.addEventListener('touchstart', onFirstClick, { passive: true });
+  window.addEventListener('keydown', onFirstClick);
+  window.addEventListener('click', onFirstClick);
+})();
